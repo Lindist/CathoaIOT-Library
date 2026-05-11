@@ -16,6 +16,9 @@
 
 // ======================= User Configuration ========================== //
 
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+
 // WiFi credentials
 static const char* WIFI_SSID     = "Wokwi-GUEST";       // ← change me
 static const char* WIFI_PASSWORD = "";                    // ← change me
@@ -33,10 +36,13 @@ static constexpr uint16_t BUFFER_SIZE = 512;
 
 // ===================================================================== //
 
+// สร้าง Network Client (แบบ Secure สำหรับ ESP32)
+WiFiClientSecure netClient;
+
 // Create the CathoaIOT instance
 // Note: MQTT_USER, MQTT_PASS, and BUFFER_SIZE are optional and can be omitted if not needed.
 CathoaIOT iot(
-    WIFI_SSID, WIFI_PASSWORD, DEVICE_ID,
+    netClient, DEVICE_ID,
     MQTT_HOST, MQTT_PORT, TOPIC_PREFIX,
     MQTT_USER, MQTT_PASS, BUFFER_SIZE
 );
@@ -50,7 +56,19 @@ void setup() {
     Serial.println();
     Serial.println(F("=== CathoaIOT – BasicTelemetry Example ==="));
 
-    // Connect to WiFi & MQTT
+    // Connect to WiFi
+    Serial.print(F("Connecting to WiFi"));
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(F("."));
+    }
+    Serial.println(F("\nWiFi Connected."));
+
+    // Set insecure mode for TLS (prototype only)
+    netClient.setInsecure();
+
+    // Connect to MQTT
     iot.begin();
 }
 

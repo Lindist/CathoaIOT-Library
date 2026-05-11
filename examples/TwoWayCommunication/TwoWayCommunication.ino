@@ -25,6 +25,9 @@
 
 // ======================= User Configuration ========================== //
 
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+
 // WiFi credentials – เปลี่ยนเป็นค่าของคุณ
 static const char* WIFI_SSID     = "Wokwi-GUEST";       // ← เปลี่ยน WiFi SSID
 static const char* WIFI_PASSWORD = "";                    // ← เปลี่ยน WiFi password
@@ -42,10 +45,13 @@ static const char* MQTT_PASS     = "YourPassword";        // ← เปลี่
 // Pin ของ Built-in LED บน ESP32 (ปกติคือ Pin 2)
 static constexpr int LED_PIN = 2;
 
-// ---- สร้าง CathoaIOT instance ด้วย Simplified Constructor ----------- //
-// ตาม requirement: CathoaIOT(ssid, password, deviceId)
+// สร้าง Network Client (แบบ Secure สำหรับ ESP32)
+WiFiClientSecure netClient;
+
+// ---- สร้าง CathoaIOT instance ด้วย Client Injection ----------- //
+// ส่ง netClient และ deviceId ให้ไลบรารี
 // แล้วใช้ setter methods ตั้งค่า MQTT ทีหลัง
-CathoaIOT iot(WIFI_SSID, WIFI_PASSWORD, DEVICE_ID);
+CathoaIOT iot(netClient, DEVICE_ID);
 
 // Publish interval – ส่ง telemetry ทุก 5 วินาที
 static constexpr unsigned long TELEMETRY_INTERVAL_MS = 5000;
@@ -125,13 +131,23 @@ void setup() {
     // ทันทีที่ MQTT เชื่อมต่อและ subscribe สำเร็จ
     iot.setCommandCallback(handleCommand);
 
-    // ---- เริ่มต้น WiFi + MQTT ------------------------------------- //
+    // ---- เชื่อมต่อ WiFi -------------------------------------------- //
+    Serial.print(F("Connecting to WiFi"));
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(F("."));
+    }
+    Serial.println(F("\nWiFi Connected."));
+
+    // ตั้งค่า insecure mode สำหรับ TLS (สำหรับการทดสอบ)
+    netClient.setInsecure();
+
+    // ---- เริ่มต้น MQTT --------------------------------------------- //
     // begin() จะ:
-    //   1. เชื่อมต่อ WiFi
-    //   2. ตั้งค่า TLS (insecure mode)
-    //   3. ตั้งค่า internal MQTT callback
-    //   4. เชื่อมต่อ MQTT broker
-    //   5. Auto-subscribe ไปที่ v1/devices/{deviceId}/cmd
+    //   1. ตั้งค่า internal MQTT callback
+    //   2. เชื่อมต่อ MQTT broker
+    //   3. Auto-subscribe ไปที่ v1/devices/{deviceId}/cmd
     iot.begin();
 }
 
@@ -142,7 +158,7 @@ void setup() {
 void loop() {
     // ---- ต้องเรียก iot.loop() ทุกรอบ ------------------------------- //
     // ทำหน้าที่:
-    //   - ตรวจสอบ WiFi/MQTT connection → auto-reconnect + re-subscribe
+    //   - ตรวจสอบ MQTT connection → auto-reconnect + re-subscribe
     //   - ประมวลผล incoming MQTT packets (รวมถึง command messages)
     iot.loop();
 

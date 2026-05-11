@@ -247,7 +247,7 @@ public:
     // ================================================================== //
 
     /** @brief ตรวจสอบว่า MQTT เชื่อมต่ออยู่หรือไม่ */
-    bool isMqttConnected() const;
+    bool isMqttConnected();
 
     /** @brief ดึง Device ID ที่ส่งเข้า constructor */
     const char* getDeviceId() const;

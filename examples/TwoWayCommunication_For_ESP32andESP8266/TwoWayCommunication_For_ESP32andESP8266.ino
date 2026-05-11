@@ -25,8 +25,13 @@
 
 // ======================= User Configuration ========================== //
 
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
+#if defined(ESP32)
+  #include <WiFi.h>
+  #include <WiFiClientSecure.h>
+#elif defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <WiFiClientSecure.h>
+#endif
 
 // WiFi credentials – เปลี่ยนเป็นค่าของคุณ
 static const char* WIFI_SSID     = "Wokwi-GUEST";       // ← เปลี่ยน WiFi SSID

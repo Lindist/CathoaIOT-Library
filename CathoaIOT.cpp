@@ -359,7 +359,7 @@ bool CathoaIOT::sendTelemetry(String key, bool value) {
 // ====================================================================== //
 
 
-bool CathoaIOT::isMqttConnected() const {
+bool CathoaIOT::isMqttConnected() {
     return _mqttClient.connected();
 }
 

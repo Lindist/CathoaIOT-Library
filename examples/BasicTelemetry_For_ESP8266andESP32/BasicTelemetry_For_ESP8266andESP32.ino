@@ -16,8 +16,13 @@
 
 // ======================= User Configuration ========================== //
 
-#include <WiFi.h>
-#include <WiFiClientSecure.h>
+#if defined(ESP32)
+  #include <WiFi.h>
+  #include <WiFiClientSecure.h>
+#elif defined(ESP8266)
+  #include <ESP8266WiFi.h>
+  #include <WiFiClientSecure.h>
+#endif
 
 // WiFi credentials
 static const char* WIFI_SSID     = "Wokwi-GUEST";       // ← change me

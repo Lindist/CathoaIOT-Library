@@ -242,10 +242,7 @@ public:
      */
     bool sendTelemetry(String key, bool value);
 
-    /**
-     * @brief Publish multiple telemetry values via raw JSON string.
-     */
-    bool sendTelemetryJSON(String jsonPayload);
+
 
     /**
      * @brief Structure for holding multiple telemetry items

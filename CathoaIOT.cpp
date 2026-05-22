@@ -355,46 +355,7 @@ bool CathoaIOT::sendTelemetry(String key, bool value) {
     return _mqttClient.publish(topic, buffer, n);
 }
 
-// ====================================================================== //
-//  Telemetry: sendTelemetryJSON(jsonPayload)
-//  – ส่งค่าหลายตัวแปรเป็น JSON object ไปยัง Cloud
-// ====================================================================== //
 
-bool CathoaIOT::sendTelemetryJSON(String jsonPayload) {
-    if (!_mqttClient.connected()) {
-        Serial.println(F("[CathoaIOT] sendTelemetryJSON failed: not connected."));
-        return false;
-    }
-
-    // สร้าง JSON แบบที่ Dashboard คาดหวัง
-    JsonDocument doc;
-    doc["deviceId"] = _deviceId;
-    
-    // แปลง String jsonPayload เป็น JSON Object เพื่อยัดใส่ payload
-    JsonDocument payloadDoc;
-    DeserializationError error = deserializeJson(payloadDoc, jsonPayload);
-    
-    if (error) {
-        Serial.print(F("[CathoaIOT] JSON parse failed in sendTelemetryJSON: "));
-        Serial.println(error.c_str());
-        return false;
-    }
-    
-    doc["payload"] = payloadDoc.as<JsonObject>();
-
-    char buffer[512];
-    const size_t n = serializeJson(doc, buffer, sizeof(buffer));
-
-    char topic[160];
-    _buildTelemetryTopic(topic, sizeof(topic));
-
-    Serial.print(F("[CathoaIOT] PUB "));
-    Serial.print(topic);
-    Serial.print(F(" → "));
-    Serial.println(buffer);
-
-    return _mqttClient.publish(topic, buffer, n);
-}
 
 // ====================================================================== //
 //  Telemetry: sendTelemetry(std::initializer_list<TelemetryItem>)

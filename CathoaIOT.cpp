@@ -356,6 +356,104 @@ bool CathoaIOT::sendTelemetry(String key, bool value) {
 }
 
 // ====================================================================== //
+//  Telemetry: sendTelemetryJSON(jsonPayload)
+//  – ส่งค่าหลายตัวแปรเป็น JSON object ไปยัง Cloud
+// ====================================================================== //
+
+bool CathoaIOT::sendTelemetryJSON(String jsonPayload) {
+    if (!_mqttClient.connected()) {
+        Serial.println(F("[CathoaIOT] sendTelemetryJSON failed: not connected."));
+        return false;
+    }
+
+    // สร้าง JSON แบบที่ Dashboard คาดหวัง
+    JsonDocument doc;
+    doc["deviceId"] = _deviceId;
+    
+    // แปลง String jsonPayload เป็น JSON Object เพื่อยัดใส่ payload
+    JsonDocument payloadDoc;
+    DeserializationError error = deserializeJson(payloadDoc, jsonPayload);
+    
+    if (error) {
+        Serial.print(F("[CathoaIOT] JSON parse failed in sendTelemetryJSON: "));
+        Serial.println(error.c_str());
+        return false;
+    }
+    
+    doc["payload"] = payloadDoc.as<JsonObject>();
+
+    char buffer[512];
+    const size_t n = serializeJson(doc, buffer, sizeof(buffer));
+
+    char topic[160];
+    _buildTelemetryTopic(topic, sizeof(topic));
+
+    Serial.print(F("[CathoaIOT] PUB "));
+    Serial.print(topic);
+    Serial.print(F(" → "));
+    Serial.println(buffer);
+
+    return _mqttClient.publish(topic, buffer, n);
+}
+
+// ====================================================================== //
+//  Telemetry: sendTelemetry(std::initializer_list<TelemetryItem>)
+//  – ส่งค่าหลายตัวแปรพร้อมกันโดยใช้ C++ initializer list 
+// ====================================================================== //
+
+bool CathoaIOT::sendTelemetry(std::initializer_list<TelemetryItem> items) {
+    if (!_mqttClient.connected()) {
+        Serial.println(F("[CathoaIOT] sendTelemetry (multi) failed: not connected."));
+        return false;
+    }
+
+    // สร้าง JSON แบบที่ Dashboard คาดหวัง
+    JsonDocument doc;
+    doc["deviceId"] = _deviceId;
+    JsonObject payloadObj = doc["payload"].to<JsonObject>();
+
+    for (const auto& item : items) {
+        // ลองแปลง value เป็นตัวเลข ถ้าเป็นตัวเลขจริงให้เก็บแบบ number
+        // ถ้าแปลงไม่ได้ให้เก็บเป็น string
+        bool isNumber = true;
+        float numVal = 0.0f;
+        
+        // เช็คคร่าวๆ ว่าเป็นตัวเลขหรือไม่
+        if (item.value.length() == 0) {
+            isNumber = false;
+        } else {
+            for (size_t i = 0; i < item.value.length(); i++) {
+                char c = item.value[i];
+                if (!isDigit(c) && c != '.' && c != '-') {
+                    isNumber = false;
+                    break;
+                }
+            }
+        }
+        
+        if (isNumber) {
+            numVal = item.value.toFloat();
+            payloadObj[item.key] = numVal;
+        } else {
+            payloadObj[item.key] = item.value;
+        }
+    }
+
+    char buffer[512];
+    const size_t n = serializeJson(doc, buffer, sizeof(buffer));
+
+    char topic[160];
+    _buildTelemetryTopic(topic, sizeof(topic));
+
+    Serial.print(F("[CathoaIOT] PUB "));
+    Serial.print(topic);
+    Serial.print(F(" → "));
+    Serial.println(buffer);
+
+    return _mqttClient.publish(topic, buffer, n);
+}
+
+// ====================================================================== //
 //  Status Helpers – ตรวจสอบสถานะ connection
 // ====================================================================== //
 

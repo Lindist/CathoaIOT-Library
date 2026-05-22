@@ -242,6 +242,30 @@ public:
      */
     bool sendTelemetry(String key, bool value);
 
+    /**
+     * @brief Publish multiple telemetry values via raw JSON string.
+     */
+    bool sendTelemetryJSON(String jsonPayload);
+
+    /**
+     * @brief Structure for holding multiple telemetry items
+     */
+    struct TelemetryItem {
+        String key;
+        String value;
+    };
+
+    /**
+     * @brief Publish multiple telemetry values at once using C++ initializer list.
+     *
+     * Example:
+     *   iot.sendTelemetry({
+     *     {"temperatureC", String(temperature)},
+     *     {"humidity", String(humidity)}
+     *   });
+     */
+    bool sendTelemetry(std::initializer_list<TelemetryItem> items);
+
     // ================================================================== //
     //  Status Queries – ตรวจสอบสถานะ
     // ================================================================== //

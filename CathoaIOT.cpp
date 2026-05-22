@@ -183,21 +183,16 @@ void CathoaIOT::_handleIncomingMessage(char* topic, byte* payload, unsigned int 
     }
 
     // ---- Step 5: ดึง command name และ payload จาก JSON ------------- //
-    // ดึง "command" key (required)
-    String command = doc["command"].as<String>();
-
-    // ดึง "status" key ก่อน, ถ้าไม่มีจะ fallback ไป "payload" key
-    // รองรับทั้ง: {"command":"x","status":"ON"}
-    //         และ: {"command":"x","payload":"value"}
-    String cmdPayload;
-    if (doc.containsKey("status")) {
-        cmdPayload = doc["status"].as<String>();
-    } else if (doc.containsKey("payload")) {
-        cmdPayload = doc["payload"].as<String>();
-    } else {
-        // ถ้าไม่มีทั้ง status และ payload → ส่ง empty string
-        cmdPayload = "";
+    // Dashboard ส่งข้อมูลแบบ {"key": "value"} เราจะดึงคู่แรกมาใช้งาน
+    JsonObject obj = doc.as<JsonObject>();
+    if (obj.isNull() || obj.size() == 0) {
+        Serial.println(F("[CathoaIOT] Empty JSON command."));
+        return;
     }
+
+    JsonPair kv = *obj.begin();
+    String command = kv.key().c_str();
+    String cmdPayload = kv.value().as<String>();
 
     // ---- Step 6: เรียก user callback ------------------------------ //
     Serial.print(F("[CathoaIOT] → Dispatching: command=\""));
@@ -274,9 +269,11 @@ bool CathoaIOT::sendTelemetry(String key, float value) {
         return false;
     }
 
-    // สร้าง JSON document: { "<key>": <value> }
+    // สร้าง JSON document แบบที่ Dashboard คาดหวัง
     JsonDocument doc;
-    doc[key] = value;
+    doc["deviceId"] = _deviceId;
+    JsonObject payloadObj = doc["payload"].to<JsonObject>();
+    payloadObj[key] = value;
 
     // Serialise JSON ลง stack buffer
     char buffer[256];
@@ -307,9 +304,11 @@ bool CathoaIOT::sendTelemetry(String key, String value) {
         return false;
     }
 
-    // สร้าง JSON: { "<key>": "<value>" }
+    // สร้าง JSON แบบที่ Dashboard คาดหวัง
     JsonDocument doc;
-    doc[key] = value;
+    doc["deviceId"] = _deviceId;
+    JsonObject payloadObj = doc["payload"].to<JsonObject>();
+    payloadObj[key] = value;
 
     char buffer[256];
     const size_t n = serializeJson(doc, buffer, sizeof(buffer));
@@ -336,9 +335,11 @@ bool CathoaIOT::sendTelemetry(String key, bool value) {
         return false;
     }
 
-    // สร้าง JSON: { "<key>": true/false }
+    // สร้าง JSON แบบที่ Dashboard คาดหวัง
     JsonDocument doc;
-    doc[key] = value;
+    doc["deviceId"] = _deviceId;
+    JsonObject payloadObj = doc["payload"].to<JsonObject>();
+    payloadObj[key] = value;
 
     char buffer[256];
     const size_t n = serializeJson(doc, buffer, sizeof(buffer));

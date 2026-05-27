@@ -36,7 +36,7 @@ static const char* MQTT_HOST     = "f13e31dd434f4a099bfe1f13ec6e84a9.s1.eu.hivem
 static constexpr uint16_t MQTT_PORT = 8883;
 static const char* MQTT_USER     = "iot_user";            // ← change me
 static const char* MQTT_PASS     = "YourPassword";        // ← change me
-static const char* TOPIC_PREFIX  = "four/dashboardiot/telemetry";
+static const char* TOPIC_PREFIX  = "example/dashboardiot";
 static constexpr uint16_t BUFFER_SIZE = 512;
 
 // ===================================================================== //

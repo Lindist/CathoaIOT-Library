@@ -27,7 +27,7 @@ WiFiClientSecure netClient;
 // Use the full constructor
 CathoaIOT iot(
     netClient, DEVICE_ID,
-    MQTT_HOST, MQTT_PORT, "v1/devices"
+    MQTT_HOST, MQTT_PORT, ""
 );
 
 static unsigned long lastSendMs = 0;

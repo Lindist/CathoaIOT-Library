@@ -93,13 +93,13 @@ void loop() {
     const float humidity    = 40.0f + (random(0, 5000) / 100.0f);
 
     // ---- Publish telemetry ----------------------------------------- //
-    if (iot.sendTelemetry("temperatureC", temperature)) {
+    if (iot.sendTelemetry({
+        {"temperatureC", String(temperature)},
+        {"humidity", String(humidity)}
+    })) {
         Serial.print(F("✓ temperatureC = "));
-        Serial.println(temperature);
-    }
-
-    if (iot.sendTelemetry("humidity", humidity)) {
-        Serial.print(F("✓ humidity = "));
+        Serial.print(temperature);
+        Serial.print(F(", humidity = "));
         Serial.println(humidity);
     }
 

@@ -95,14 +95,14 @@ void loop() {
     // ---- Publish telemetry ----------------------------------------- //
     if (iot.sendTelemetry({
         {"temperatureC", String(temperature)},
-        {"humidity", String(humidity)}
+        {"humidity", String(humidity)},
+        {"status", true}
     })) {
         Serial.print(F("✓ temperatureC = "));
         Serial.print(temperature);
         Serial.print(F(", humidity = "));
         Serial.println(humidity);
+    }else{
+        iot.sendTelemetry("status", true);
     }
-
-    // You can also send string values:
-    // iot.sendTelemetry("status", "OK");
 }

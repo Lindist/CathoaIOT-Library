@@ -250,6 +250,17 @@ public:
     struct TelemetryItem {
         String key;
         String value;
+
+        // Constructors to support different data types without manual String() conversion
+        TelemetryItem(String k, String v) : key(k), value(v) {}
+        TelemetryItem(String k, const char* v) : key(k), value(v) {}
+        TelemetryItem(String k, bool v) : key(k), value(v ? "true" : "false") {}
+        TelemetryItem(String k, int v) : key(k), value(String(v)) {}
+        TelemetryItem(String k, unsigned int v) : key(k), value(String(v)) {}
+        TelemetryItem(String k, long v) : key(k), value(String(v)) {}
+        TelemetryItem(String k, unsigned long v) : key(k), value(String(v)) {}
+        TelemetryItem(String k, float v) : key(k), value(String(v, 4)) {}
+        TelemetryItem(String k, double v) : key(k), value(String(v, 4)) {}
     };
 
     /**

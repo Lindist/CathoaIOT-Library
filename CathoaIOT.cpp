@@ -374,15 +374,26 @@ bool CathoaIOT::sendTelemetry(std::initializer_list<TelemetryItem> items) {
     JsonObject payloadObj = doc["payload"].to<JsonObject>();
 
     for (const auto& item : items) {
-        // ลองแปลง value เป็นตัวเลข ถ้าเป็นตัวเลขจริงให้เก็บแบบ number
-        // ถ้าแปลงไม่ได้ให้เก็บเป็น string
+        // ลองแปลง value เป็นตัวเลขหรือ boolean ถ้าแปลงไม่ได้ให้เก็บเป็น string
         bool isNumber = true;
         float numVal = 0.0f;
         
-        // เช็คคร่าวๆ ว่าเป็นตัวเลขหรือไม่
-        if (item.value.length() == 0) {
+        bool isBoolean = false;
+        bool boolVal = false;
+        
+        // ตรวจสอบว่าเป็น Boolean หรือไม่
+        if (item.value.equalsIgnoreCase("true")) {
+            isBoolean = true;
+            boolVal = true;
+            isNumber = false;
+        } else if (item.value.equalsIgnoreCase("false")) {
+            isBoolean = true;
+            boolVal = false;
+            isNumber = false;
+        } else if (item.value.length() == 0) {
             isNumber = false;
         } else {
+            // เช็คคร่าวๆ ว่าเป็นตัวเลขหรือไม่
             for (size_t i = 0; i < item.value.length(); i++) {
                 char c = item.value[i];
                 if (!isDigit(c) && c != '.' && c != '-') {
@@ -392,7 +403,9 @@ bool CathoaIOT::sendTelemetry(std::initializer_list<TelemetryItem> items) {
             }
         }
         
-        if (isNumber) {
+        if (isBoolean) {
+            payloadObj[item.key] = boolVal;
+        } else if (isNumber) {
             numVal = item.value.toFloat();
             payloadObj[item.key] = numVal;
         } else {

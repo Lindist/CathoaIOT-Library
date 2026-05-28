@@ -44,9 +44,6 @@ void setup() {
     // Set credentials if required by your broker
     iot.setMqttCredentials("myUsername", "myPassword");
     
-    // Custom topic prefix (default is "v1/devices")
-    iot.setTelemetryTopicPrefix("custom/topic/prefix");
-    
     // Increase buffer size if expecting large JSON commands from Dashboard
     iot.setBufferSize(1024); 
 

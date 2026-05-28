@@ -25,8 +25,8 @@
 #endif
 
 // WiFi credentials
-static const char* WIFI_SSID     = "Wokwi-GUEST";       // ← change me
-static const char* WIFI_PASSWORD = "";                    // ← change me
+static const char* WIFI_SSID     = "YourSSID";       // ← change me
+static const char* WIFI_PASSWORD = "YourPassword";                    // ← change me
 
 // Device ID – must match the device registered on your Cathoa Dashboard
 static const char* DEVICE_ID     = "YOUR-DEVICE-UUID";   // ← change me
@@ -36,19 +36,19 @@ static const char* MQTT_HOST     = "MQTT_HOST";
 static constexpr uint16_t MQTT_PORT = 8883;
 static const char* MQTT_USER     = "MQTT_USER";            // ← change me
 static const char* MQTT_PASS     = "MQTT_PASS";        // ← change me
-static const char* TOPIC_PREFIX  = "cathoaiot/telemetry";
 static constexpr uint16_t BUFFER_SIZE = 512;
 
 // ===================================================================== //
 
-// สร้าง Network Client (แบบ Secure สำหรับ ESP32)
+// Create Network Client (Secure for ESP32)
 WiFiClientSecure netClient;
 
 // Create the CathoaIOT instance
-// Note: MQTT_USER, MQTT_PASS, and BUFFER_SIZE are optional and can be omitted if not needed.
+// Note: MQTT_USER, MQTT_PASS, and BUFFER_SIZE are optional. 
+// The 5th parameter (topic prefix) is currently ignored by the library, so we pass "".
 CathoaIOT iot(
     netClient, DEVICE_ID,
-    MQTT_HOST, MQTT_PORT, TOPIC_PREFIX,
+    MQTT_HOST, MQTT_PORT, "",
     MQTT_USER, MQTT_PASS, BUFFER_SIZE
 );
 

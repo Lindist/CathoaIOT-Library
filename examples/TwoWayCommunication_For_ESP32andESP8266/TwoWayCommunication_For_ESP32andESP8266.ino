@@ -1,24 +1,24 @@
 /**
  * @file TwoWayCommunication.ino
- * @brief ตัวอย่าง Two-Way Communication ด้วย CathoaIOT Library
+ * @brief Two-Way Communication Example with CathoaIOT Library
  *
- * แสดงการใช้งาน:
- *   ► ส่ง temperature data ทุก 5 วินาที ด้วย sendTelemetry()
- *   ► รับคำสั่งจาก Cloud ด้วย setCommandCallback()
- *     เช่น {"command": "toggleLight", "status": "ON"}
- *     แล้วเปิด/ปิด LED ที่ Pin 2 ของ ESP32
+ * Demonstrates:
+ *   ► Sending telemetry data every 5 seconds using sendTelemetry()
+ *   ► Receiving commands from Cloud using setCommandCallback()
+ *     e.g., {"command": "toggleLight", "status": "ON"}
+ *     to turn on/off the built-in LED on Pin 2 of the ESP32.
  *
- * MQTT Topic ที่ใช้:
+ * MQTT Topics Used:
  *   - Publish:   v1/devices/{deviceId}/telemetry
  *   - Subscribe: v1/devices/{deviceId}/cmd
  *
- * วิธีใช้:
- *   1. ติดตั้ง CathoaIOT library
- *   2. แก้ WiFi credentials, MQTT credentials, และ Device ID ด้านล่าง
- *   3. Upload ไปยังบอร์ด ESP32
- *   4. เปิด Serial Monitor ที่ 115200 baud
- *   5. ส่ง command JSON ไปที่ topic v1/devices/{DEVICE_ID}/cmd
- *      เช่น: {"command": "toggleLight", "status": "ON"}
+ * Instructions:
+ *   1. Install the CathoaIOT library.
+ *   2. Configure your WiFi credentials, MQTT credentials, and Device ID below.
+ *   3. Upload to an ESP32 board.
+ *   4. Open Serial Monitor at 115200 baud.
+ *   5. Send a command JSON to topic v1/devices/{DEVICE_ID}/cmd
+ *      e.g.: {"command": "toggleLight", "status": "ON"}
  */
 
 #include <CathoaIOT.h>
@@ -33,71 +33,71 @@
   #include <WiFiClientSecure.h>
 #endif
 
-// WiFi credentials – เปลี่ยนเป็นค่าของคุณ
-static const char* WIFI_SSID     = "STeP._5GHz";           // ← เปลี่ยน WiFi SSID
-static const char* WIFI_PASSWORD = "";                    // ← เปลี่ยน WiFi password
+// WiFi credentials - Change these to your network settings
+static const char* WIFI_SSID     = "YourSSID";           // ← Change WiFi SSID
+static const char* WIFI_PASSWORD = "YourPassword";       // ← Change WiFi password
 
-// Device ID – ต้องตรงกับที่ลงทะเบียนบน Cathoa Dashboard
-static const char* DEVICE_ID     = "d0020718-3442-4680-9319-1f3af3784173";   // ← เปลี่ยน Device ID
+// Device ID - Must match the device registered on your Cathoa Dashboard
+static const char* DEVICE_ID     = "YOUR-DEVICE-UUID";   // ← Change Device ID
 
 // MQTT broker settings
-static const char* MQTT_HOST     = "f13e31dd434f4a099bfe1f13ec6e84a9.s1.eu.hivemq.cloud";
-static const char* MQTT_USER     = "iot_user";            // ← เปลี่ยน MQTT username
-static const char* MQTT_PASS     = "Iamlnw1992";        // ← เปลี่ยน MQTT password
+static const char* MQTT_HOST     = "broker.hivemq.com";  // ← Change MQTT Host
+static const char* MQTT_USER     = "YourUsername";       // ← Change MQTT username
+static const char* MQTT_PASS     = "YourPassword";       // ← Change MQTT password
 
 // ===================================================================== //
 
-// Pin ของ Built-in LED บน ESP32 (ปกติคือ Pin 2)
+// Built-in LED Pin on ESP32 (Usually Pin 2)
 static constexpr int LED_PIN = 2;
 
-// Pin สำหรับ LED ตัวที่ 2 และปุ่มกด
+// Pins for LED 2 and Button
 static constexpr int LED2_PIN = 23;
 static constexpr int BUTTON_PIN = 22;
 
-// Pin สำหรับ LED ตัวที่ 3
+// Pin for LED 3
 static constexpr int LED3_PIN = 21;
 
-// Pin สำหรับ LED ตัวที่ 4 (รับคำสั่ง Gas)
+// Pin for LED 4 (Gas command)
 static constexpr int LED4_PIN = 19;
 
-// Pin สำหรับ Potentiometer (ตัวต้านทานปรับค่าได้) ต้องใช้ขา Analog (ADC)
+// Analog Pin (ADC) for Potentiometer
 static constexpr int POT_PIN = 34;
 
-// เก็บสถานะของ LED ตัวที่ 2 (เพื่อใช้ทั้งในปุ่มกดและรับคำสั่ง)
+// Store state of LED 2 (used for both button and command handling)
 bool led2State = false;
 
-// เก็บสถานะของ LED ตัวที่ 3
+// Store state of LED 3
 bool led3State = false;
 
-// สร้าง Network Client (แบบ Secure สำหรับ ESP32)
+// Create Network Client (Secure for ESP32)
 WiFiClientSecure netClient;
 
-// ---- สร้าง CathoaIOT instance ด้วย Client Injection ----------- //
-// ส่ง netClient และ deviceId ให้ไลบรารี
-// แล้วใช้ setter methods ตั้งค่า MQTT ทีหลัง
+// ---- Create CathoaIOT instance using Client Injection ----------- //
+// Pass netClient and deviceId to the library,
+// then use setter methods to configure MQTT later.
 CathoaIOT iot(netClient, DEVICE_ID);
 
-// Publish interval – ส่ง telemetry ทุก 5 วินาที
+// Publish interval - Send telemetry every 5 seconds
 static constexpr unsigned long TELEMETRY_INTERVAL_MS = 5000;
 static unsigned long lastSendMs = 0;
 
 // ====================================================================== //
 //  Command Callback Function
-//  – ฟังก์ชันที่จะถูกเรียกเมื่อมีคำสั่งเข้ามาจาก Cloud
+//  - Function called when a command arrives from the Cloud
 // ====================================================================== //
 
 /**
- * @brief ฟังก์ชัน callback สำหรับรับคำสั่งจาก MQTT
+ * @brief Callback function to handle incoming MQTT commands
  *
- * เมื่อ Cloud ส่ง JSON มาที่ topic v1/devices/{deviceId}/cmd
- * เช่น: {"command": "toggleLight", "status": "ON"}
+ * When the Cloud sends a JSON to topic v1/devices/{deviceId}/cmd
+ * e.g.: {"command": "toggleLight", "status": "ON"}
  *
- * ไลบรารีจะ parse JSON แล้วเรียกฟังก์ชันนี้พร้อมส่ง:
+ * The library parses the JSON and calls this function with:
  *   - command = "toggleLight"
  *   - payload = "ON"
  *
- * @param command  ชื่อคำสั่ง (ค่า "command" ใน JSON)
- * @param payload  ค่าของคำสั่ง (ค่า "status" หรือ "payload" ใน JSON)
+ * @param command  Command name (key "command" in JSON)
+ * @param payload  Command value (key "status" or "payload" in JSON)
  */
 void handleCommand(String command, String payload) {
     Serial.println(F("========================================"));
@@ -107,30 +107,27 @@ void handleCommand(String command, String payload) {
     Serial.println(payload);
     Serial.println(F("========================================"));
 
-    // ตรวจสอบชื่อคำสั่ง (ตั้งค่า Publish Topic ใน Dashboard ให้ตรงกับอันนี้)
-    // ตัวอย่าง: ถ้าใน Dashboard ตั้ง Publish Topic เป็น led_switch 
-    // ตัวแปร command ก็จะมีค่าเป็น "led_switch"
+    // Check command name (ensure Publish Topic in Dashboard matches this)
     if (command == "toggleLight") {
         
-        // แปลง payload ให้เป็นตัวพิมพ์ใหญ่ทั้งหมดเพื่อเช็คง่ายขึ้น
+        // Convert payload to uppercase for easier comparison
         payload.toUpperCase();
 
-        // เช็คว่าคำสั่งคือให้เปิดหรือไม่ (รองรับหลายรูปแบบ)
+        // Check if command is to turn ON (supports multiple formats)
         if (payload == "ON" || payload == "TRUE" || payload == "1") {
             digitalWrite(LED_PIN, HIGH);
             Serial.println(F("[LED] Turned ON"));
             
-            // ⭐ ส่งข้อมูลกลับไปยืนยันที่ Dashboard เพื่อให้ปุ่มอัปเดตสถานะเป็นเปิด
-            // (เราต้องใช้คำสั่งเดียวกันเป็น Telemetry Key)
+            // ⭐ Echo status back to Dashboard to update UI button state
             iot.sendTelemetry(command, String("ON"));
             
         } 
-        // เช็คว่าคำสั่งคือให้ปิดหรือไม่
+        // Check if command is to turn OFF
         else if (payload == "OFF" || payload == "FALSE" || payload == "0") {
             digitalWrite(LED_PIN, LOW);
             Serial.println(F("[LED] Turned OFF"));
             
-            // ⭐ ส่งข้อมูลกลับไปยืนยันที่ Dashboard เพื่อให้ปุ่มอัปเดตสถานะเป็นปิด
+            // ⭐ Echo status back to Dashboard to update UI button state
             iot.sendTelemetry(command, String("OFF"));
             
         } else {
@@ -159,7 +156,7 @@ void handleCommand(String command, String payload) {
         }
     } else if (command == "gas") {
         
-        // แปลง payload (ที่เป็น String) ให้กลายเป็นตัวเลข (Integer)
+        // Convert string payload to integer
         int gasValue = payload.toInt();
         
         if (gasValue > 80) {
@@ -167,13 +164,13 @@ void handleCommand(String command, String payload) {
             Serial.print(F("[LED4] Gas value > 80 ("));
             Serial.print(gasValue);
             Serial.println(F(") -> LED4 ON"));
-            iot.sendTelemetry(command, float(gasValue)); // ส่งยืนยัน
+            iot.sendTelemetry(command, float(gasValue)); // Echo confirmation
         } else {
             digitalWrite(LED4_PIN, LOW);
             Serial.print(F("[LED4] Gas value <= 80 ("));
             Serial.print(gasValue);
             Serial.println(F(") -> LED4 OFF"));
-            iot.sendTelemetry(command, float(gasValue)); // ส่งยืนยัน
+            iot.sendTelemetry(command, float(gasValue)); // Echo confirmation
         }
         
     } else {
@@ -183,45 +180,45 @@ void handleCommand(String command, String payload) {
 }
 
 // ====================================================================== //
-//  Setup – ทำงานครั้งเดียวตอนเริ่มต้น
+//  Setup - Run once at startup
 // ====================================================================== //
 
 void setup() {
-    // ---- เริ่มต้น Serial Monitor ----------------------------------- //
+    // ---- Initialize Serial Monitor --------------------------------- //
     Serial.begin(115200);
     Serial.println();
-    Serial.println(F("=== CathoaIOT – TwoWayCommunication Example ==="));
+    Serial.println(F("=== CathoaIOT - TwoWayCommunication Example ==="));
 
-    // ---- ตั้งค่า LED pin เป็น OUTPUT ------------------------------ //
+    // ---- Configure LED pins as OUTPUT ----------------------------- //
     pinMode(LED_PIN, OUTPUT);
-    digitalWrite(LED_PIN, LOW);  // เริ่มต้นปิด LED
+    digitalWrite(LED_PIN, LOW);  // Start with LED OFF
 
     pinMode(LED2_PIN, OUTPUT);
-    digitalWrite(LED2_PIN, LOW); // เริ่มต้นปิด LED 2
+    digitalWrite(LED2_PIN, LOW); // Start with LED 2 OFF
 
     pinMode(LED3_PIN, OUTPUT);
-    digitalWrite(LED3_PIN, LOW); // เริ่มต้นปิด LED 3
+    digitalWrite(LED3_PIN, LOW); // Start with LED 3 OFF
 
     pinMode(LED4_PIN, OUTPUT);
-    digitalWrite(LED4_PIN, LOW); // เริ่มต้นปิด LED 4
+    digitalWrite(LED4_PIN, LOW); // Start with LED 4 OFF
 
-    // ตั้งค่า Analog Pin สำหรับอ่านค่า Potentiometer
+    // Configure Analog Pin for Potentiometer reading
     pinMode(POT_PIN, INPUT);
 
-    // ---- ตั้งค่า Button pin เป็น INPUT_PULLUP ----------------------- //
+    // ---- Configure Button pin as INPUT_PULLUP ----------------------- //
     pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-    // ---- ตั้งค่า MQTT broker (ก่อนเรียก begin()) ------------------- //
+    // ---- Configure MQTT broker (Before calling begin()) ------------- //
     iot.setMqttHost(MQTT_HOST);
     iot.setMqttPort(8883);               // TLS port
     iot.setMqttCredentials(MQTT_USER, MQTT_PASS);
 
-    // ---- ลงทะเบียน Command Callback (ก่อนเรียก begin()) ------------ //
-    // ต้องเรียกก่อน begin() เพื่อให้ callback พร้อมรับคำสั่ง
-    // ทันทีที่ MQTT เชื่อมต่อและ subscribe สำเร็จ
+    // ---- Register Command Callback (Before calling begin()) --------- //
+    // Must be called before begin() so callback is ready to receive commands
+    // as soon as MQTT connects and subscribes successfully.
     iot.setCommandCallback(handleCommand);
 
-    // ---- เชื่อมต่อ WiFi -------------------------------------------- //
+    // ---- Connect to WiFi -------------------------------------------- //
     Serial.print(F("Connecting to WiFi"));
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     while (WiFi.status() != WL_CONNECTED) {
@@ -230,29 +227,29 @@ void setup() {
     }
     Serial.println(F("\nWiFi Connected."));
 
-    // ตั้งค่า insecure mode สำหรับ TLS (สำหรับการทดสอบ)
+    // Set insecure mode for TLS (for testing purposes)
     netClient.setInsecure();
 
-    // ---- เริ่มต้น MQTT --------------------------------------------- //
-    // begin() จะ:
-    //   1. ตั้งค่า internal MQTT callback
-    //   2. เชื่อมต่อ MQTT broker
-    //   3. Auto-subscribe ไปที่ v1/devices/{deviceId}/cmd
+    // ---- Initialize MQTT ------------------------------------------- //
+    // begin() will:
+    //   1. Setup internal MQTT callback
+    //   2. Connect to MQTT broker
+    //   3. Auto-subscribe to v1/devices/{deviceId}/cmd
     iot.begin();
 }
 
 // ====================================================================== //
-//  Loop – ทำงานซ้ำไปเรื่อยๆ
+//  Loop - Runs continuously
 // ====================================================================== //
 
 void loop() {
-    // ---- ต้องเรียก iot.loop() ทุกรอบ ------------------------------- //
-    // ทำหน้าที่:
-    //   - ตรวจสอบ MQTT connection → auto-reconnect + re-subscribe
-    //   - ประมวลผล incoming MQTT packets (รวมถึง command messages)
+    // ---- MUST call iot.loop() every iteration ----------------------- //
+    // Responsible for:
+    //   - Checking MQTT connection -> auto-reconnect + re-subscribe
+    //   - Processing incoming MQTT packets (including command messages)
     iot.loop();
 
-    // ---- ตรวจสอบการกดปุ่ม (Debounce) ------------------------------ //
+    // ---- Button Debounce Logic -------------------------------------- //
     static int lastButtonState = HIGH;
     static int buttonState = HIGH;
     static unsigned long lastDebounceTime = 0;
@@ -260,28 +257,27 @@ void loop() {
 
     int reading = digitalRead(BUTTON_PIN);
 
-    // ถ้าย้ายสถานะของปุ่ม (กด หรือ ปล่อย) ให้เริ่มจับเวลาใหม่
+    // If button state changed (pressed or released), reset timer
     if (reading != lastButtonState) {
         lastDebounceTime = millis();
     }
 
-    // ถ้าเวลาผ่านไปเกิน delay แล้ว แปลว่าไม่ใช่สัญญาณรบกวน
+    // If time elapsed exceeds debounce delay, state is stable
     if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY) {
-        // ถ้าสถานะปุ่มเปลี่ยนไปจากเดิม
         if (reading != buttonState) {
             buttonState = reading;
 
-            // สนใจเฉพาะตอนกดปุ่ม (ค่าเป็น LOW เพราะใช้ INPUT_PULLUP)
+            // Trigger action on press (LOW because INPUT_PULLUP is used)
             if (buttonState == LOW) {
-                // สลับสถานะ LED 2
+                // Toggle LED 2 state
                 led2State = !led2State;
                 digitalWrite(LED2_PIN, led2State ? HIGH : LOW);
                 
                 Serial.print(F("[BUTTON] Pressed -> LED2 is now "));
                 Serial.println(led2State ? F("ON") : F("OFF"));
                 
-                // ⭐ ส่งสถานะล่าสุดไปยัง Dashboard ทันที
-                // ต้องใช้ String() ครอบเพื่อไม่ให้ C++ เผลอแปลง "ON" เป็นค่า bool(true)
+                // ⭐ Send latest state to Dashboard immediately
+                // String() cast is needed so C++ doesn't evaluate "ON" as bool(true)
                 iot.sendTelemetry("led2_switch", led2State ? String("ON") : String("OFF"));
             }
         }
@@ -289,19 +285,15 @@ void loop() {
 
     lastButtonState = reading;
 
-    // ---- อ่านค่าตัวต้านทานปรับค่าได้ (Potentiometer) ---------------- //
-    // ค่าที่อ่านได้จะอยู่ในช่วง 0 - 4095
+    // ---- Read Potentiometer (Variable Resistor) --------------------- //
+    // Reading value range: 0 - 4095
     int lightLevel = analogRead(POT_PIN);
 
-    // ---- สร้างการควบคุม LED 3 (ส่งค่า Boolean เมื่อหมุนสุด) --------- //
+    // ---- LED 3 Control (Send boolean state at extremes) ------------- //
     static bool isAtExtreme = false;
-    static unsigned long lastLed3BlinkMs = 0;
-    static constexpr unsigned long LED3_BLINK_INTERVAL_MS = 2000; 
-
-    unsigned long currentMs = millis();
 
     if (lightLevel >= 4000) {
-        // หมุนสุดขวา (ค่าสูงสุด) -> ไฟเปิดค้าง + ส่งสถานะ ON
+        // Turned all the way right (max value) -> Keep LED ON + send ON state
         if (!isAtExtreme || led3State != true) {
             isAtExtreme = true;
             led3State = true;
@@ -309,7 +301,7 @@ void loop() {
             Serial.println(F("[LED3] Potentiometer MAX -> LED3 ON"));
         }
     } else if (lightLevel <= 100) {
-        // หมุนสุดซ้าย (ค่าต่ำสุด) -> ไฟปิดค้าง + ส่งสถานะ OFF
+        // Turned all the way left (min value) -> Keep LED OFF + send OFF state
         if (!isAtExtreme || led3State != false) {
             isAtExtreme = true;
             led3State = false;
@@ -318,18 +310,17 @@ void loop() {
         }
     }
 
-    // ---- Throttle: ส่ง telemetry ทุก 5 วินาที --------------------- //
+    // ---- Throttle: Send telemetry every 5 seconds ------------------- //
     const unsigned long now = millis();
     if (now - lastSendMs < TELEMETRY_INTERVAL_MS) return;
     lastSendMs = now;
 
-    // ---- สร้างข้อมูล sensor จำลอง (ยกเว้น light ที่อ่านจากของจริง) -- //
+    // ---- Generate mock sensor data (except light which is real) ----- //
     const float temperature = 20.0f + (random(0, 1500) / 100.0f);
     const float humidity = 40.0f + (random(0, 2000) / 100.0f);
-    // ไม่ใช้ random lightLevel แล้ว เพราะอ่านค่าจาก POT_PIN มาแล้วด้านบน
 
-    // ---- ส่ง Telemetry แบบหลายค่าพร้อมกัน (C++ Initializer List) ---- //
-    // ส่งข้อมูลเป็นกลุ่ม โดยใช้รูปแบบ { {"key", "value"}, {"key", "value"} }
+    // ---- Send Multiple Telemetry (C++ Initializer List) ------------- //
+    // Send data as batch using { {"key", "value"}, {"key", "value"} } format
     if (iot.sendTelemetry({
         {"temperatureC", String(temperature)},
         {"humidity", String(humidity)},

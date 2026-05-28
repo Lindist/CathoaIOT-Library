@@ -16,6 +16,8 @@
 static const char* WIFI_SSID     = "YourSSID";
 static const char* WIFI_PASSWORD = "YourPassword";
 static const char* DEVICE_ID     = "YOUR-DEVICE-UUID";
+static const char* MQTT_USER     = "YourMqttUsername";
+static const char* MQTT_PASS     = "YourMqttPassword";
 
 WiFiClientSecure netClient;
 
@@ -76,6 +78,8 @@ void setup() {
     
     // Register the command callback
     iot.setCommandCallback(onCommandReceived);
+    
+    iot.setMqttCredentials(MQTT_USER, MQTT_PASS);
     
     iot.begin();
 }

@@ -21,6 +21,8 @@ static const char* DEVICE_ID     = "YOUR-DEVICE-UUID";
 // MQTT broker settings
 static const char* MQTT_HOST     = "broker.hivemq.com";
 static constexpr uint16_t MQTT_PORT = 8883;
+static const char* MQTT_USER     = "YourMqttUsername";
+static const char* MQTT_PASS     = "YourMqttPassword";
 
 WiFiClientSecure netClient;
 
@@ -44,6 +46,8 @@ void setup() {
     Serial.println(F("\nWiFi Connected."));
 
     netClient.setInsecure(); // For testing without certificates
+    
+    iot.setMqttCredentials(MQTT_USER, MQTT_PASS);
     iot.begin();
 }
 

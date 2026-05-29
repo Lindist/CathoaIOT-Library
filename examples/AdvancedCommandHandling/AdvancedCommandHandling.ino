@@ -40,14 +40,14 @@ void onCommandReceived(String command, String payload) {
             // Optionally echo the status back to the dashboard
             iot.sendTelemetry({
               {"light_status", "ON"},
-              {command, "1"}
+              {command, payload}
             });
         } else if (payload == "OFF" || payload == "0" || payload == "false") {
             digitalWrite(LED_PIN, LOW);
             Serial.println("Action: Light turned OFF");
             iot.sendTelemetry({
               {"light_status", "OFF"},
-              {command, "0"}
+              {command, payload}
             });
         }
     } 

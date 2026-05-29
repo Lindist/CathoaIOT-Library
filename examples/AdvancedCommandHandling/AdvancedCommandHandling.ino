@@ -55,6 +55,7 @@ void onCommandReceived(String command, String payload) {
         int speed = payload.toInt();
         Serial.print("Action: Setting motor speed to ");
         Serial.println(speed);
+        iot.sendTelemetry(command, payload);
         // e.g. analogWrite(MOTOR_PIN, speed);
     }
     else {
